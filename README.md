@@ -11,27 +11,27 @@ When a user hits an API endpoint, the redis client sends a SHA key ( preloaded d
 The script is then run atomically to prevent race conditions and to enable multiple concurrent workers that are trying to hit the endpoint at the same time.
 
 The fixed and sliding window approaches have been implemented, although the latter is vastly more precise since it enforces rate limits over a rolling time-window rather than using fixed buckets.
+<br>
 
-<br><br>
-Rate limit set = 10<br>
+### Parameters set :<br>
+
+Rate limit set = 10 requests<br>
 Window = 60 seconds.
 
 ## Endpoints
 
-- These can be run on postman to hit the endpoint
+- These endpoints can be tested on postman :
 
 ### Fixed Window
 
 ```
 GET /fixed_limit/{user_id}
-
 ```
 
 ### Sliding Window
 
 ```
 GET /sliding_limit/{user_id}
-
 ```
 
 ## Running the Project
