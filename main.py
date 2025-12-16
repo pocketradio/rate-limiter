@@ -42,7 +42,7 @@ async def lifespan(app: FastAPI):
     app.state.sliding_window_sha = lua_script_hash_sliding
     app.state.fixed_window_sha = lua_script_hash_fixed
     app.state.script_contents_fixed = lua_script_contents_fixed
-    
+    app.state.script_contents_sliding = lua_script_contents_sliding
     
     yield
     
@@ -81,5 +81,32 @@ async def rate_limit_check_fixed_window(user_id : int, request: Request):
 
     return{
         "status" : "request allowed yay",
+        "count" : result
+    }
+    
+
+@app.get("/sliding_limit/{user_id}")
+async def rate_limit_check_sliding_window(user_id : int, request: Request):
+    
+    redis_client = request.app.state.redis
+    sha_sliding = request.app.state.sliding_window_sha
+    
+    user_key = f"rate_limit:{user_id}" #stays same throughout unlike fixed window.
+    
+    try:
+        result = await redis_client.evalsha(sha_sliding, 1, user_key, RATE_LIMIT, WINDOW_SECONDS)
+    except NoScriptError:
+        sha = await redis_client.script_load(request.app.state.script_contents_sliding)
+        request.app.state.sliding_window_sha = sha
+        result = await redis_client.evalsha(sha, 1, user_key, RATE_LIMIT, WINDOW_SECONDS)
+    except RedisError as e:
+        print(e, 'IS THE ERROR ')
+        raise HTTPException(500, 'rate limiter unavailable :(')
+    
+    if result == -1:
+        raise HTTPException(status_code=429, detail='rate limit reached. byebye')
+    
+    return{
+        "status" : "request allowed :D",
         "count" : result
     }
